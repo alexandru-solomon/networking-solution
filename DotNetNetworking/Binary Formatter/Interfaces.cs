@@ -1,9 +1,9 @@
 //Copyright 2022, Alexandru Solomon, All rights reserved.
 //Contacts: Alexandru.Solomon.inbox@gmail.com
 
-namespace CNet.Serialization
+namespace Networking.Serialization
 {
-    public interface IRepresentant<out RepresentedType>
+    public interface IRepresents<RepresentedType>
     {
         public RepresentedType GetRepresented();
     }

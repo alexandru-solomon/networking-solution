@@ -3,9 +3,8 @@
 
 using System.Collections;
 using System.Reflection;
-using System;
 
-namespace CNet.Serialization
+namespace Networking.Serialization
 {
     class PrimitiveFormatter:IFormattable
     {
@@ -38,14 +37,13 @@ namespace CNet.Serialization
         }
         public void Serialize(object value)
         {
-            bool isNull = value == null;
-            boolFormatter.Serialize(!isNull);
-            if (isNull) return;
+            boolFormatter.Serialize(value == null);
+            if (value == null) return;
             contentFormatter.Serialize(value);
         }
-        public object Deserialize()
+        public object? Deserialize()
         {
-            bool isNull = !(bool)boolFormatter.Deserialize();
+            bool isNull = (bool)boolFormatter.Deserialize();
 
             if (isNull) return null;
             return contentFormatter.Deserialize();
@@ -76,16 +74,21 @@ namespace CNet.Serialization
         private readonly IFormattable representantFormatter;
         private readonly Type representantType;
 
-        public RepresentedFormatter(IFormattable representantFormatter, Type representantType)
+        private readonly MethodInfo? deserializeMethod; 
+
+        public RepresentedFormatter(IFormattable representantFormatter, Type representantType,Type representedType)
         {
+            Type genericInterfaceType = typeof(IRepresents<>).MakeGenericType(representedType);
+            deserializeMethod = genericInterfaceType.GetMethod(nameof(IRepresents<Type>.GetRepresented));
+
             this.representantFormatter = representantFormatter;
             this.representantType = representantType;
         }
-        public object Deserialize()
-        {
-            IRepresentant<object> representant = (IRepresentant<object>)representantFormatter.Deserialize();
+        public object? Deserialize()
+        {   
+            object representant = representantFormatter.Deserialize();
             if (representant == null) return null;
-            return representant.GetRepresented();
+            return deserializeMethod?.Invoke(representant,null);
         }
         public void Serialize(object represented)
         {
@@ -112,8 +115,8 @@ namespace CNet.Serialization
 
         public void Serialize(object instance)
         {
-            ICollection collection = instance as ICollection;
-            IEnumerable enumerator = instance as IEnumerable;
+            ICollection collection = (ICollection)instance;
+            IEnumerable enumerator = (IEnumerable)instance;
             uIntFormatter.Serialize((uint)collection.Count);
             foreach (var item in enumerator) elementFormatter.Serialize(item);
         }

@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using System.Collections;
 using UnityEngine;
 
-namespace CNet
+namespace Networking
 {
     public class NetworkBehaviour : MonoBehaviour
     {

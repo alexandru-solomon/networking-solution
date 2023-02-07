@@ -4,7 +4,7 @@
 using System.Reflection;
 using System;
 
-namespace CNet 
+namespace Networking 
 {
     public class NetClass
     {

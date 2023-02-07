@@ -1,7 +1,7 @@
 //Copyright 2022, Alexandru Solomon, All rights reserved.
 //Contacts: Alexandru.Solomon.inbox@gmail.com
 
-namespace CNet
+namespace Networking
 {
     public class ConInfo
     { 

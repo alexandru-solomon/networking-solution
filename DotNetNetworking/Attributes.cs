@@ -2,7 +2,7 @@
 //Contacts: Alexandru.Solomon.inbox@gmail.com
 using System;
 
-namespace CNet
+namespace Networking
 {
     
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct | AttributeTargets.Enum)]

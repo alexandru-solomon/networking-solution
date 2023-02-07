@@ -1,12 +1,12 @@
 //Copyright 2022, Alexandru Solomon, All rights reserved.
 //Contacts: Alexandru.Solomon.inbox@gmail.com
 
-using CNet.Serialization;
+using Networking.Serialization;
 using System.Reflection;
 using UnityEngine;
 using System;
 
-namespace CNet.Unity.Serialization
+namespace Networking.Unity.Serialization
 {
     public class UnityBinaryFormatter : BinaryFormatter
     {
@@ -16,7 +16,7 @@ namespace CNet.Unity.Serialization
         }
         
     }
-        [Packet] public struct NetVector2:IRepresentant<Vector2>
+        [Packet] public struct NetVector2:IRepresents<Vector2>
         {
             public float x;
             public float y;
