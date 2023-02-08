@@ -6,32 +6,17 @@ using System.Reflection;
 
 namespace Networking.Serialization
 {
-    class PrimitiveFormatter:IFormattable
-    {
-        private readonly DeserializerMethod deserializer;
-        private readonly SerializerMethod serializer;
-        public PrimitiveFormatter(SerializerMethod serializer, DeserializerMethod deserializer)
-        {
-            this.serializer = serializer;
-            this.deserializer = deserializer;
-        }
-
-        public object Deserialize()
-        {
-            return deserializer.Invoke();
-        }
-
-        public void Serialize(object obj)
-        {
-            serializer.Invoke(obj);
-        }
-    }
     class NullPrefixFormatter : IFormattable
     {
+        public Type Type { get; }
+        public bool NullSupport { get; }
+
         private readonly IFormattable boolFormatter;
         private readonly IFormattable contentFormatter;
         public NullPrefixFormatter(BinaryFormatter binaryFormatter,IFormattable contentFormatter)
         {
+            Type= contentFormatter.Type;
+            NullSupport = true;
             boolFormatter = binaryFormatter.GetFormatter(typeof(bool));
             this.contentFormatter = contentFormatter;
         }
@@ -48,16 +33,54 @@ namespace Networking.Serialization
             if (isNull) return null;
             return contentFormatter.Deserialize();
         }
+
+        public override string ToString()
+        {
+            return $"?{contentFormatter}";
+        }
+    }
+
+    class PrimitiveFormatter:IFormattable
+    {
+        public Type Type { get; }
+        public bool NullSupport { get; } 
+
+        private readonly DeserializerMethod deserializer;
+        private readonly SerializerMethod serializer;
+        public PrimitiveFormatter(Type type, SerializerMethod serializer, DeserializerMethod deserializer)
+        {
+            Type= type;
+            this.serializer = serializer;
+            this.deserializer = deserializer;
+            NullSupport = false;
+        }
+
+        public object Deserialize()
+        {
+            return deserializer.Invoke();
+        }
+
+        public void Serialize(object obj)
+        {
+            serializer.Invoke(obj);
+        }
+
+        public override string ToString()
+        {
+            return Type.ToString();
+        }
     }
     class EnumFormatter : IFormattable
     {
+        public bool NullSupport { get; }
         private readonly IFormattable intFormatter;
-        private readonly Type type;
+        public Type Type { get; }
 
         public EnumFormatter(BinaryFormatter binaryFormatter, Type type)
         {
+            NullSupport = false;
             intFormatter = binaryFormatter.GetFormatter(typeof(int));
-            this.type = type;
+            Type = type;
         }
 
         public void Serialize(object enumValue)
@@ -66,24 +89,36 @@ namespace Networking.Serialization
         }
         public object Deserialize()
         {
-            return Enum.ToObject(type, (int)intFormatter.Deserialize());
+            return Enum.ToObject(Type, (int)intFormatter.Deserialize());
+        }
+
+        public override string ToString()
+        {
+            return $"{Type} Enum";
         }
     }
     class RepresentedFormatter : IFormattable
     {
+        public Type Type { get; }
+        public bool NullSupport { get; }
+
         private readonly IFormattable representantFormatter;
         private readonly Type representantType;
 
         private readonly MethodInfo? deserializeMethod; 
 
-        public RepresentedFormatter(IFormattable representantFormatter, Type representantType,Type representedType)
+        public RepresentedFormatter(Type representedType, IFormattable representantFormatter)
         {
+            Type = representedType;
+            NullSupport = false;
             Type genericInterfaceType = typeof(IRepresents<>).MakeGenericType(representedType);
             deserializeMethod = genericInterfaceType.GetMethod(nameof(IRepresents<Type>.GetRepresented));
 
             this.representantFormatter = representantFormatter;
-            this.representantType = representantType;
+            representantType = representantFormatter.Type;
         }
+
+
         public object? Deserialize()
         {   
             object representant = representantFormatter.Deserialize();
@@ -97,20 +132,29 @@ namespace Networking.Serialization
             else representant = Activator.CreateInstance(representantType, represented);
             representantFormatter.Serialize(representant);
         }
+
+        public override string ToString()
+        {
+            string containerType = Type.IsClass ? "Class" : "Struct";
+            return $"{Type} {containerType} Represented by {representantFormatter}";
+        }
     }
     class CollectionFormatter : IFormattable
     {
+        public Type Type { get; }
+        public bool NullSupport { get; }
+
         private readonly IFormattable elementFormatter;
         private readonly IFormattable uIntFormatter;
         private readonly Type elementType;
-        private readonly Type type;
 
-        public CollectionFormatter(BinaryFormatter binaryFormatter, IFormattable elementFormatter, Type elementType, Type type)
+        public CollectionFormatter(Type type, Type elementType, IFormattable elementFormatter, BinaryFormatter binaryFormatter)
         {
+            Type = type;
+            NullSupport = false;
             uIntFormatter = binaryFormatter.GetFormatter(typeof(uint));
             this.elementFormatter = elementFormatter;
             this.elementType = elementType;
-            this.type = type;
         }
 
         public void Serialize(object instance)
@@ -127,8 +171,13 @@ namespace Networking.Serialization
             for (int i = 0; i < length; i++)
                 array.SetValue(elementFormatter.Deserialize(), i);
 
-            if (type.IsArray) return array;
-            else return Activator.CreateInstance(type, array);
+            if (Type.IsArray) return array;
+            else return Activator.CreateInstance(Type, array);
+        }
+
+        public override string ToString()
+        {
+            return $"System.{Type.Name}[{elementFormatter}]";
         }
     }
     class ContainerFormatter : IFormattable
@@ -151,15 +200,17 @@ namespace Networking.Serialization
             {
                 field.SetValue(instance, formatter.Deserialize());
             }
-            
         }
 
-        private readonly Type containerType;
+        public Type Type { get; }
+        public bool NullSupport { get; }
+
         private readonly Field[] fieldFormatters;
 
-        public ContainerFormatter(Type containerType , Field[] fieldFormatters)
+        public ContainerFormatter(Type type , Field[] fieldFormatters)
         {
-            this.containerType = containerType;
+            Type = type;
+            NullSupport = false;
             this.fieldFormatters = fieldFormatters;
         }
 
@@ -169,10 +220,15 @@ namespace Networking.Serialization
         }
         public object Deserialize()
         {
-            object instance = Activator.CreateInstance(containerType);
+            object instance = Activator.CreateInstance(Type);
             for (int i = 0; i < fieldFormatters.Length; i++) fieldFormatters[i].Deserialize(instance);
 
             return instance;
+        }
+
+        public override string ToString()
+        {
+            return Type.IsClass ? $"{Type} Class" : $"{Type} Struct";
         }
     }
 }

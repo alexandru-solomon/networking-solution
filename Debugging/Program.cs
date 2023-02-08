@@ -5,10 +5,10 @@ using static System.Console;
 
 BinaryFormatter formatter = new BinaryFormatter(new[] { Assembly.GetExecutingAssembly() },typeof(Packet));
 
-formatter.infoEvent += (msg, obj) => { ForegroundColor = ConsoleColor.DarkGray; WriteLine((string)msg); ForegroundColor = ConsoleColor.Gray; };
-formatter.warningEvent += (msg, obj) => { ForegroundColor = ConsoleColor.Yellow; WriteLine((string)msg); ForegroundColor = ConsoleColor.Gray; };
-formatter.errorEvent += (msg, obj) => { ForegroundColor = ConsoleColor.Red; WriteLine((string)msg); ForegroundColor = ConsoleColor.Gray; };
-formatter.eventEvent += (msg, obj) => { ForegroundColor = ConsoleColor.White; WriteLine((string)msg); ForegroundColor = ConsoleColor.Gray; };
+formatter.Log.AddInfoHandler((obj, msg) => { ForegroundColor = ConsoleColor.DarkGray; WriteLine(msg); ForegroundColor = ConsoleColor.Gray; });
+formatter.Log.AddWarnHandler((obj, msg) => { ForegroundColor = ConsoleColor.Yellow; WriteLine(msg); ForegroundColor = ConsoleColor.Gray; });
+formatter.Log.AddErrorHandler((obj, msg) => { ForegroundColor = ConsoleColor.Red; WriteLine(msg); ForegroundColor = ConsoleColor.Gray; });
+
 formatter.Initialize();
 
 
@@ -25,7 +25,7 @@ WriteLine("pos: "+formatter.Stream.Position);
 formatter.Stream.Position = 0;
 ClassTest newClass = formatter.Deserialize<ClassTest>();
 
-newClass.Print();
+newClass?.Print();
 
 formatter.Stream.Position = 0;
 StructTest structTest = new()
@@ -60,6 +60,7 @@ public struct Vector2
 public enum TestEnum { a, b, c }
 [Packet] public class ClassTest
 {
+    public (ClassTest, int) a;
     public Vector2 vec;
     public int n;
     public TestEnum e;
