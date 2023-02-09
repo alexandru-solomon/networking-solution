@@ -1,11 +1,13 @@
 //Copyright 2022, Alexandru Solomon, All rights reserved.
 //Contacts: Alexandru.Solomon.inbox@gmail.com
 
-using System.Collections;
-using System.Reflection;
 
 namespace Networking.Serialization
 {
+    using System.Collections;
+    using System.Reflection;
+    using System;
+
     class NullPrefixFormatter : IFormattable
     {
         public Type Type { get; }
@@ -26,7 +28,7 @@ namespace Networking.Serialization
             if (value == null) return;
             contentFormatter.Serialize(value);
         }
-        public object? Deserialize()
+        public object Deserialize()
         {
             bool isNull = (bool)boolFormatter.Deserialize();
 

@@ -1,7 +1,8 @@
-﻿using System.Diagnostics;
-
-namespace DotNetNetworking.Logging
+﻿
+namespace Networking.Logging
 {
+    using System.Diagnostics;
+    using System;
     public class Log
     {
         public readonly object Source = default!;

@@ -1,10 +1,10 @@
 //Copyright 2022, Alexandru Solomon, All rights reserved.
 //Contacts: Alexandru.Solomon.inbox@gmail.com
-using System;
 
 namespace Networking
 {
-    
+    using System;
+
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct | AttributeTargets.Enum)]
     public class Packet : Attribute { }
 

@@ -1,12 +1,15 @@
 //Copyright 2022, Alexandru Solomon, All rights reserved.
 //Contacts: Alexandru.Solomon.inbox@gmail.com
 
-using System.Collections;
-using System.Reflection;
-using DotNetNetworking.Logging;
-
 namespace Networking.Serialization
 {
+    using Networking.Logging;
+    using System.Collections.Generic;
+    using System.Collections;
+    using System.Reflection;
+    using System.IO;
+    using System;
+
     public class BinaryFormatter
     {
         public readonly Dictionary<Type, IFormattable> formatters;
@@ -45,98 +48,61 @@ namespace Networking.Serialization
 
         public bool Flagged(Type type, bool hierarchically)
         {
-            if (type == null)
-            {
-                var msg = $"Attempt to check if null type is flagged with [{AttributeFlag.Name}]"; Log.Error(msg);
-                throw new ArgumentNullException(nameof(type),msg);
-            }
-            if (!hierarchically) return Flagged(type);
-            else return DeclaringTypeFlagged(type);
+            if (Flagged(type)) return true;
+            if (!hierarchically) return CheckIfFlaggedRecursively(type.DeclaringType);
 
-            bool DeclaringTypeFlagged(Type? type)
+            return CheckIfFlaggedRecursively(type);
+
+            bool CheckIfFlaggedRecursively(Type? type)
             {
                 if (type == null) return false;
                 if (Flagged(type)) return true;
-                else return DeclaringTypeFlagged(type.DeclaringType);
+                else return CheckIfFlaggedRecursively(type.DeclaringType);
             }
         }
         public bool Flagged(Type type)
         {
-            if (type == null)
-            {
-                var msg = $"Type reference required to check if flagged with [{AttributeFlag.Name}]"; Log.Error(msg);
-                throw new ArgumentNullException(nameof(type), msg);
-                
-            }
+            if (type == null) throw new ArgumentNullException(nameof(type), "Type reference required to check if flagged.");
             return type.GetCustomAttributes(AttributeFlag, true).Length > 0;
         }
         
         public bool Formattable(Type type)
         {
-            if (type == null)
-            {
-                var msg = "Type reference required to check if Type is serializable."; Log.Error(msg);
-                throw new ArgumentNullException(nameof(type), msg);
-            }
-            else return formatters.ContainsKey(type);
+            if (type == null) throw new ArgumentNullException(nameof(type), "Type required to check if Type is formattable.");
+            
+            return formatters.ContainsKey(type);
         }
 
         public void Serialize(object obj)
         {
-            if (obj == null)
-            {
-                var msg = $"Null Objects are not serializable without a type specified.";
-                throw new ArgumentNullException(nameof(obj),msg);
-            }
+            if (obj == null) throw new ArgumentNullException(nameof(obj), "Serialization without specifying a type requires a object reference.");
 
             Type type = obj.GetType();
-            
-            if(!Formattable(type))
-            {
-                var msg = $"Object of type {type} is not serializable. Check if supported and flagged with the [{AttributeFlag.Name}] attribute.";
-                throw new InvalidOperationException(msg);
-            }
+
+            if (!Formattable(type)) throw new ArgumentException($"{type} object is not serializable. Might not be Flagged, added or supported.",nameof(obj));
 
             GetFormatter(type).Serialize(obj);
         }
-        public void Serialize<Type>(Type? obj)
-        {
-            var type = typeof(Type);
-            
-            TryGetFormatter(type, out var formatter);
 
-            if (formatter == null)
-            {
-                var msg = $"Object {type} cannot be serilized. {type} unsuported or not Flagged with [{AttributeFlag.Name}]";
-                throw(new InvalidOperationException(msg));
-            }
-
-            if (formatter.NullSupport && obj == null)
-            {
-                var msg = $"Type {type} doesnt support null value serialization."; throw new InvalidOperationException(msg);
-            }
-
-            formatter.Serialize(obj);
-        }
         public void Serialize(Type type, object? obj)
         {
-            if (type == null)
-            {
-                var msg = $"Object? serialization with a type argument specified expects a non null type.";
-                Log.Error(msg); throw new ArgumentNullException(nameof(type),msg);
-            }
+            if (type == null) throw new ArgumentNullException(nameof(type), "Type required to serialize a object.");            
 
             TryGetFormatter(type, out var formatter);
 
-            if (formatter == null)
+            if (formatter == null) throw new ArgumentException($"{type} object is not serializable. Might not be Flagged, added or supported.", nameof(obj));
+
+            if (obj == null)
             {
-                var msg = $"Object {type} cannot be serilized. {type} unsuported or not Flagged with [{AttributeFlag.Name}]";
-                throw (new InvalidOperationException(msg));
+                if (formatter.NullSupport) throw new ArgumentException($"The type {formatter.Type} doesnt support null value serialization.");
+            }
+            else
+            {
+                if (obj.GetType() != formatter.Type) throw (new ArgumentException("Object type different from the serialization type requested.",nameof(obj)));
             }
 
-            if (formatter.Type != type)
             {
-                var msg = $"The {obj.GetType} object argument specified should have the same type as the specified type argument. You specified {type} instead.";
+                var msg = $"The {obj?.GetType()} object argument specified should have the same type as the specified type argument. You specified {type} instead.";
                 throw (new InvalidOperationException(msg));
             }
 
@@ -149,7 +115,7 @@ namespace Networking.Serialization
             formatter.Serialize(obj);
         }
 
-        public Type? Deserialize<Type>()
+        public Type Deserialize<Type>()
         {
             object? obj = Deserialize(typeof(Type));
             if (obj == null) return default;
@@ -225,7 +191,7 @@ namespace Networking.Serialization
 
         private void CreateFormattersForAssemblies(Assembly[] assemblies)
         {
-            List<Type> flaggedTypes = new();
+            List<Type> flaggedTypes = new List<Type>();
 
             if (assemblies == null) return;
             foreach (Assembly assembly in assemblies)
@@ -289,8 +255,8 @@ namespace Networking.Serialization
 
         private ContainerFormatter CreateContainerFormatter(Type containerType)
         {
-            List<ContainerFormatter.Field> fieldFormatters = new();
-            FieldInfo[] fieldInfos = containerType.GetFields();
+            var fieldFormatters = new List<ContainerFormatter.Field>();
+            var fieldInfos = containerType.GetFields();
 
             foreach (FieldInfo fieldInfo in fieldInfos)
             {
@@ -305,9 +271,9 @@ namespace Networking.Serialization
                     continue;
                 }
 
-                fieldFormatters.Add(new(fieldInfo, fieldFormatter));
+                fieldFormatters.Add(new ContainerFormatter.Field(fieldInfo, fieldFormatter));
             }
-            return new(containerType, fieldFormatters.ToArray());
+            return new ContainerFormatter(containerType, fieldFormatters.ToArray());
         }
         private IFormattable? CreateRepresentedFormatter(Type representantType)
         {
@@ -342,7 +308,7 @@ namespace Networking.Serialization
                 return null;
             }
 
-            RepresentedFormatter representedFormatter = new(representedType, representantFormatter);
+            var representedFormatter = new RepresentedFormatter(representedType, representantFormatter);
             AddFormatter(representedFormatter);
 
             return representedFormatter;
@@ -373,8 +339,8 @@ namespace Networking.Serialization
                 return null;
             }
 
-            CollectionFormatter collectionFormatter = new(collectionType, elementType, elementFormatter,this);
-            NullPrefixFormatter nullableCollectionFormatter = new(this, collectionFormatter);
+            var collectionFormatter = new CollectionFormatter(collectionType, elementType, elementFormatter, this);
+            var nullableCollectionFormatter = new NullPrefixFormatter(this, collectionFormatter);
             AddFormatter(nullableCollectionFormatter);
 
             return nullableCollectionFormatter;
@@ -399,7 +365,7 @@ namespace Networking.Serialization
                 return null;
             }
 
-            NullPrefixFormatter nullPrefixFormatter = new(this, underlyingTypeFormatter);
+            var nullPrefixFormatter = new NullPrefixFormatter(this, underlyingTypeFormatter);
             AddFormatter(nullPrefixFormatter);
 
             return nullPrefixFormatter;
@@ -423,8 +389,8 @@ namespace Networking.Serialization
                 Log.Error($"Class {classType} is unformattable because is not flagged with [{AttributeFlag.Name}].");
                 return null;
             }
-            ContainerFormatter containerFormatter = CreateContainerFormatter(classType);
-            NullPrefixFormatter nullPrefixFormatter = new(this, containerFormatter);
+            var containerFormatter = CreateContainerFormatter(classType);
+            var nullPrefixFormatter = new NullPrefixFormatter(this, containerFormatter);
             AddFormatter(nullPrefixFormatter);
 
             return nullPrefixFormatter;
@@ -449,15 +415,15 @@ namespace Networking.Serialization
                 return null;
             }
 
-            CollectionFormatter collectionFormatter = new(arrayType, elementType,elementFormatter, this);
-            NullPrefixFormatter arrayFormatter = new(this, collectionFormatter);
+            var collectionFormatter = new CollectionFormatter(arrayType, elementType,elementFormatter, this);
+            var arrayFormatter = new NullPrefixFormatter(this, collectionFormatter);
 
             AddFormatter(arrayFormatter);
             return arrayFormatter;
         }
         private IFormattable? CreateEnumFormatter(Type enumType)
         {
-            EnumFormatter enumFormatter = new(this, enumType);
+            EnumFormatter enumFormatter = new EnumFormatter(this, enumType);
             AddFormatter(enumFormatter);
 
             return enumFormatter;

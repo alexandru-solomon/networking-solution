@@ -12,7 +12,7 @@ namespace Networking.Unity.Serialization
     {
         public UnityBinaryFormatter(Assembly[] assembly, Type flagType) : base(assembly, flagType) 
         {
-
+            Transform transform;
         }
         
     }
@@ -20,7 +20,7 @@ namespace Networking.Unity.Serialization
         {
             public float x;
             public float y;
-
+        
             public NetVector2(Vector2 vector2)
             {
                 x = vector2.x;

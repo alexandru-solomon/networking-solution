@@ -18,7 +18,7 @@ namespace Networking
             
         }
 
-        #if Client
+        #if CLIENT
 
         public ConInfo ConInfo { get; internal set; }
 
@@ -43,7 +43,7 @@ namespace Networking
 
         #endif 
 
-        #if Server
+        #if SERVER
         public void Client(Action action) { ToClient(null,action.Method); }
         public void Client<T>(Action<T> action, T arg) { ToClient(null,action.Method, arg); }
         public void Client<T1, T2>(Action<T1, T2> action, T1 arg1, T2 arg2) { ToClient(null,action.Method, arg1, arg2); }
@@ -77,11 +77,10 @@ namespace Networking
             //if () Debug.Log($"Attempt to connect an already connected NetClass to the client {conId}");
         }
 
-
+#endif
         public Action<object, NetClass> infoEvent, errorEvent, warningEvent;
         protected void Info(object message) => infoEvent?.Invoke(message,this);
         protected void Warn(object message) => warningEvent?.Invoke(message,this);
         protected void Error(object message) => errorEvent?.Invoke(message,this);
-#endif
     } 
 }

@@ -1,14 +1,14 @@
 //Copyright 2023, Alexandru Solomon, All rights reserved.
 //Contacts: Alexandru.Solomon.inbox@gmail.com
 
-using System.Collections.Generic;
-using System.Collections;
-using System.Net.Sockets;
-using System.Net;
-using System;
 
 namespace Networking
 {
+    using System.Collections.Generic;
+    using System.Net.Sockets;
+    using System.Net;
+    using System;
+
     public class NetworkManager
     {
         class Server
@@ -59,7 +59,7 @@ namespace Networking
             {
                 if(ClientCount == MaxClientCount) return;
 
-                AsyncCallback callback = new(AcceptTcpClient);
+                AsyncCallback callback = new AsyncCallback(AcceptTcpClient);
                 tcpListener.BeginAcceptTcpClient(callback,this);
             }
             void AcceptTcpClient(IAsyncResult result)
