@@ -113,8 +113,8 @@ namespace Networking.Serialization
         {
             Type = representedType;
             NullSupport = false;
-            Type genericInterfaceType = typeof(IRepresents<>).MakeGenericType(representedType);
-            deserializeMethod = genericInterfaceType.GetMethod(nameof(IRepresents<Type>.GetRepresented));
+            Type genericInterfaceType = typeof(IRedefinition<>).MakeGenericType(representedType);
+            deserializeMethod = genericInterfaceType.GetMethod(nameof(IRedefinition<Type>.GetRepresented));
 
             this.representantFormatter = representantFormatter;
             representantType = representantFormatter.Type;
@@ -138,7 +138,7 @@ namespace Networking.Serialization
         public override string ToString()
         {
             string containerType = Type.IsClass ? "Class" : "Struct";
-            return $"{Type} {containerType} Represented by {representantFormatter}";
+            return $"{Type} {containerType} -> {representantFormatter}";
         }
     }
     class CollectionFormatter : IFormattable

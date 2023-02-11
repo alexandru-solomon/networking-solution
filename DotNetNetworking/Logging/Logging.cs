@@ -19,6 +19,7 @@ namespace Networking.Logging
 
         public void AddErrorHandler(Action<object?, object?> errorHandler) => errorEvent += errorHandler;
         public void RemoveErrorHandler(Action<object?, object?> errorHandler) => errorEvent -= errorHandler;
+
         public void AddWarnHandler(Action<object?, object?> warnHandler) => warnEvent += warnHandler;
         public void RemoveWarnHandler(Action<object?, object?> warnHandler) => warnEvent -= warnHandler;
 

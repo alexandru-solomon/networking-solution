@@ -16,7 +16,7 @@ namespace Networking.Unity.Serialization
         }
         
     }
-        [Packet] public struct NetVector2:IRepresents<Vector2>
+        [Packet] public struct NetVector2:IRedefinition<Vector2>
         {
             public float x;
             public float y;

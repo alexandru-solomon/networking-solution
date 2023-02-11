@@ -78,7 +78,7 @@ public enum TestEnum { a, b, c }
 [Packet] public struct StructTest
 {
     public Vector2 vec;
-    public int n;
+    public int? n;
     public TestEnum e;
     public void Print()
     {
@@ -87,7 +87,7 @@ public enum TestEnum { a, b, c }
         WriteLine(vec.x + " " + vec.y);
     }
 }
-[Packet] public class NetVector2:IRepresents<Vector2>
+[Packet] public class NetVector2:IRedefinition<Vector2>
 {
     public NetVector2() { }
 

@@ -5,9 +5,9 @@
 namespace Networking.Serialization
 {
     using System;
-    public interface IRepresents<RepresentedType>
+    public interface IRedefinition<RedefinedType>
     {
-        public RepresentedType GetRepresented();
+        public RedefinedType GetRepresented();
     }
 
     public interface IFormattable

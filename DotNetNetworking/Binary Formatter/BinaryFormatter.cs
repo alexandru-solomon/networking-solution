@@ -3,8 +3,8 @@
 
 namespace Networking.Serialization
 {
-    using Networking.Logging;
     using System.Collections.Generic;
+    using Networking.Logging;
     using System.Collections;
     using System.Reflection;
     using System.IO;
@@ -69,47 +69,42 @@ namespace Networking.Serialization
         public bool Formattable(Type type)
         {
             if (type == null) throw new ArgumentNullException(nameof(type), "Type required to check if Type is formattable.");
-            
             return formatters.ContainsKey(type);
         }
 
         public void Serialize(object obj)
         {
-            if (obj == null) throw new ArgumentNullException(nameof(obj), "Serialization without specifying a type requires a object reference.");
+            if (obj == null)  throw new ArgumentNullException(nameof(obj), "Serialization without specifying a type requires a object reference.");
 
             Type type = obj.GetType();
 
-            if (!Formattable(type)) throw new ArgumentException($"{type} object is not serializable. Might not be Flagged, added or supported.",nameof(obj));
+            formatters.TryGetValue(type, out var formatter);
 
-            GetFormatter(type).Serialize(obj);
+            if (formatter == null) throw new ArgumentException($"{type} object is not serializable. Might not be Flagged, added or supported.",nameof(obj));
+
+            formatter.Serialize(obj);
         }
+        public void Serialize<Type>(Type type)
+        {
+            formatters.TryGetValue(typeof(Type), out var formatter);
 
+            if(formatter == null) throw new ArgumentException($"{type} object is not serializable. Might not be Flagged, added or supported.", nameof(type));
+            if (type == null && !formatter.NullSupport) throw new ArgumentException($"The type {formatter.Type} doesnt support null value serialization.");
+
+            formatter.Serialize(type);
+        }
         public void Serialize(Type type, object? obj)
         {
             if (type == null) throw new ArgumentNullException(nameof(type), "Type required to serialize a object.");            
-
-            TryGetFormatter(type, out var formatter);
-
+            formatters.TryGetValue(type, out var formatter);
             if (formatter == null) throw new ArgumentException($"{type} object is not serializable. Might not be Flagged, added or supported.", nameof(obj));
-
             if (obj == null)
             {
-                if (formatter.NullSupport) throw new ArgumentException($"The type {formatter.Type} doesnt support null value serialization.");
+                if (!formatter.NullSupport) throw new ArgumentException($"The type {formatter.Type} doesnt support null value serialization.");
             }
             else
             {
                 if (obj.GetType() != formatter.Type) throw (new ArgumentException("Object type different from the serialization type requested.",nameof(obj)));
-            }
-
-            {
-                var msg = $"The {obj?.GetType()} object argument specified should have the same type as the specified type argument. You specified {type} instead.";
-                throw (new InvalidOperationException(msg));
-            }
-
-            if (formatter.NullSupport && obj == null)
-            {
-                var msg = $"Type {type} doesnt support null value serialization.";
-                throw new InvalidOperationException(msg);
             }
 
             formatter.Serialize(obj);
@@ -123,47 +118,20 @@ namespace Networking.Serialization
         }
         public object? Deserialize(Type type)
         {
-            if (type == null)
-            {
-                Log.Error("Attempt to deserialize a object of null type. The deserialization process requires the type of the serialized object.");
-                return null;
-            }
+            if (type == null) throw new ArgumentNullException(nameof(type), "Type required to deserialize a object.");
+
             formatters.TryGetValue(type, out IFormattable? formatter);
-            if (formatter == null)
-            {
-                Log.Error($"Type {type} cannot be deserialized. Make sure the Type is supported and is flagged with the [{AttributeFlag.Name}] attribute.");
-                return null;
-            }
+
+            if (formatter == null) throw new ArgumentException($"{type} object is not serializable. Might not be Flagged, added or supported.", nameof(type));
 
             return formatter.Deserialize();
         }
 
-        private void AddFormatter(IFormattable formatter)
+        public void AddType(Type type)
         {
-            if(formatter == null)
-            {
-                var msg = "Cannot add Null Formatter to the type formatters dictionary.";
-                throw new ArgumentNullException(nameof(formatter),msg);
-            }
-            if(formatters.ContainsKey(formatter.Type))
-            {
-                var msg = $"Attempt to add a formatter for {formatter.Type} but formatter already existent.";
-                throw new InvalidOperationException(msg);
-            }
+            if (type == null) throw new ArgumentNullException(nameof(type), "Type required to create a formatter.");
 
-            Log.Info($"Added {formatter} formatter");
-            formatters.Add(formatter.Type,formatter);
-        }
-
-        public void TryGetFormatter(Type type, out IFormattable? formatter)
-        {
-            if(type == null)
-            {
-                var msg = $"Formatter getter expects a non null type argument.";
-                throw new ArgumentNullException(nameof(type), msg);
-            }
-            
-            formatter = Formattable(type)? GetFormatter(type) : null;
+            if (formatters.ContainsKey(type)) throw new ArgumentException("Cannot add type that is already formattable.",nameof(type));
         }
         public IFormattable GetFormatter(Type type)
         {
@@ -172,21 +140,11 @@ namespace Networking.Serialization
                 var msg = $"Formatter getter expects a non null type argument.";
                 throw new ArgumentNullException(nameof(type), msg);
             }
-            if (Formattable(type)) return formatters[type];
+            if (formatters.ContainsKey(type)) return formatters[type];
 
 
             var _msg = $"{type} doesnt have a formatter, Make sure the Type is supported and is flagged with the [{AttributeFlag.Name}] attribute.";
             throw new InvalidOperationException(_msg);
-        }
-
-        public void TryGetRepresentant(Type type, out Type? representantType)
-        {
-            if (type == null)
-            {
-                var msg = "Representant getter method expects a non null argument.";
-                throw new ArgumentNullException(nameof(type), msg);
-            }
-            representedTypes.TryGetValue(type, out representantType);
         }
 
         private void CreateFormattersForAssemblies(Assembly[] assemblies)
@@ -198,16 +156,16 @@ namespace Networking.Serialization
             {
                 foreach (Type type in assembly.GetTypes())
                 {
-                    flaggedTypes.Add(type);
+                    if(Flagged(type)) flaggedTypes.Add(type);
                 }
             }
 
-            //Fiend representants
+            //Find representants
             foreach (Type type in flaggedTypes)
             {
                 foreach (var @interface in type.GetInterfaces())
                     if (@interface.IsGenericType)
-                        if (@interface.GetGenericTypeDefinition() == typeof(IRepresents<>))
+                        if (@interface.GetGenericTypeDefinition() == typeof(IRedefinition<>))
                         {
                             Type representedType = @interface.GetGenericArguments()[0];
                             representedTypes.Add(representedType, type);
@@ -217,37 +175,43 @@ namespace Networking.Serialization
 
             foreach (Type type in flaggedTypes)
             {
-                if (Formattable(type)) continue;
-
-                bool isDirectlyFlagged = Flagged(type);
-                if (isDirectlyFlagged) CreateTypeFormatter(type);
+                if (formatters.ContainsKey(type)) continue;
+                CreateTypeFormatter(type);
             }
         }
         private void CreatePrimitiveFormatters()
         {
-            AddFormatter(Get<int>(obj => Writer.Write((int)obj), () => Reader.ReadInt32()));
-            AddFormatter(Get<bool>(obj => Writer.Write((bool)obj), () => Reader.ReadBoolean()));
-            AddFormatter(Get<byte>(obj => Writer.Write((byte)obj), () => Reader.ReadByte()));
-            AddFormatter(Get<uint>(obj => Writer.Write((uint)obj), () => Reader.ReadUInt32()));
-            AddFormatter(Get<char>(obj => Writer.Write((char)obj), () => Reader.ReadChar()));
-            AddFormatter(Get<long>(obj => Writer.Write((long)obj), () => Reader.ReadInt64()));
-            AddFormatter(Get<sbyte>(obj => Writer.Write((sbyte)obj), () => Reader.ReadSByte()));
-            AddFormatter(Get<short>(obj => Writer.Write((short)obj), () => Reader.ReadInt16()));
-            AddFormatter(Get<ulong>(obj => Writer.Write((ulong)obj), () => Reader.ReadUInt64()));
-            AddFormatter(Get<float>(obj => Writer.Write((float)obj), () => Reader.ReadSingle()));
-            AddFormatter(Get<ushort>(obj => Writer.Write((ushort)obj), () => Reader.ReadUInt16()));
-            AddFormatter(Get<double>(obj => Writer.Write((double)obj), () => Reader.ReadDouble()));
+            Add(Create<int>(obj => Writer.Write((int)obj), () => Reader.ReadInt32()));
+            Add(Create<bool>(obj => Writer.Write((bool)obj), () => Reader.ReadBoolean()));
+            Add(Create<byte>(obj => Writer.Write((byte)obj), () => Reader.ReadByte()));
+            Add(Create<uint>(obj => Writer.Write((uint)obj), () => Reader.ReadUInt32()));
+            Add(Create<char>(obj => Writer.Write((char)obj), () => Reader.ReadChar()));
+            Add(Create<long>(obj => Writer.Write((long)obj), () => Reader.ReadInt64()));
+            Add(Create<sbyte>(obj => Writer.Write((sbyte)obj), () => Reader.ReadSByte()));
+            Add(Create<short>(obj => Writer.Write((short)obj), () => Reader.ReadInt16()));
+            Add(Create<ulong>(obj => Writer.Write((ulong)obj), () => Reader.ReadUInt64()));
+            Add(Create<float>(obj => Writer.Write((float)obj), () => Reader.ReadSingle()));
+            Add(Create<ushort>(obj => Writer.Write((ushort)obj), () => Reader.ReadUInt16()));
+            Add(Create<double>(obj => Writer.Write((double)obj), () => Reader.ReadDouble()));
 
-            var stringFormatter = Get<string>(obj => Writer.Write((string)obj), () => Reader.ReadString());
-            AddFormatter(new NullPrefixFormatter(this, stringFormatter));
+            var stringFormatter = Create<string>(obj => Writer.Write((string)obj), () => Reader.ReadString());
+            Add(new NullPrefixFormatter(this, stringFormatter));
 
-            var bufferFormatter = Get<byte[]>(obj =>{ 
+            var bufferFormatter = Create<byte[]>(obj =>{ 
                 Writer.Write(((byte[])obj).Length); 
                 Writer.Write((byte[])obj); 
             }, () => Reader.ReadBytes(Reader.ReadInt32()));
-            AddFormatter(new NullPrefixFormatter(this,bufferFormatter));
+            Add(new NullPrefixFormatter(this,bufferFormatter));
 
-            static IFormattable Get<T>(SerializerMethod serializer, DeserializerMethod deserializer)
+
+            void Add(IFormattable formatter)
+            {
+                if (formatters.ContainsKey(formatter.Type)) 
+                    throw new ArgumentException($"Attempt to manually add primitive formatter {formatter.Type} when already added", nameof(formatter));
+
+                AddFormatter(formatter);
+            }
+            static IFormattable Create<T>(SerializerMethod serializer, DeserializerMethod deserializer)
             {
                 return new PrimitiveFormatter(typeof(T), serializer, deserializer);
             }
@@ -261,9 +225,9 @@ namespace Networking.Serialization
             foreach (FieldInfo fieldInfo in fieldInfos)
             {
                 Type fieldType = fieldInfo.FieldType;
-                IFormattable? fieldFormatter;
-                if (Formattable(fieldType)) fieldFormatter = GetFormatter(fieldType);
-                else fieldFormatter = CreateTypeFormatter(fieldType);
+                formatters.TryGetValue(fieldType,out var fieldFormatter);
+
+                fieldFormatter ??= CreateTypeFormatter(fieldType);
 
                 if (fieldFormatter == null)
                 {
@@ -278,36 +242,30 @@ namespace Networking.Serialization
         private IFormattable? CreateRepresentedFormatter(Type representantType)
         {
             var representantInterface = representantType.GetInterfaces()[0];
-            if (representantInterface.GetGenericTypeDefinition() != typeof(IRepresents<>))
+            if (representantInterface.GetGenericTypeDefinition() != typeof(IRedefinition<>))
             {
                 Log.Error($"The first interface of the representant Type {representantType} should be IRepresentant<\"representedTypeName\">");
                 return null;
             }
-
             Type representedType = representantInterface.GetGenericArguments()[0];
-
             if (representantType == representedType)
             {
                 Log.Error($"Representant {representantType} cannot represent itself. Change the generic value of the IRepesentant<> interface into a valid one.");
                 return null;
             }
-
             bool noEmptyConstructor = representantType.GetConstructor(Type.EmptyTypes) == null;
             if (noEmptyConstructor)
             {
                 Log.Error($"A empty constructor is required for a representant type. {representedType} will not be formatted.");
                 return null;
             }
-
-            IFormattable? representantFormatter;
-            if (Formattable(representantType)) representantFormatter = GetFormatter(representantType);
-            else representantFormatter = CreateTypeFormatter(representantType);
+            formatters.TryGetValue(representantType, out var representantFormatter);
+            representantFormatter ??= CreateTypeFormatter(representantType);
             if (representantFormatter == null)
             {
                 Log.Error($"{representedType} cannot be formatted because its representant is not formattable.");
                 return null;
             }
-
             var representedFormatter = new RepresentedFormatter(representedType, representantFormatter);
             AddFormatter(representedFormatter);
 
@@ -326,49 +284,39 @@ namespace Networking.Serialization
                 Log.Error($"Collection {collectionType} is unformattable because the number of generic arguments is different from 1.");
                 return null;
             }
-
             Type elementType = genericArguments[0];
-
-            IFormattable? elementFormatter;
-            if (Formattable(elementType)) elementFormatter = GetFormatter(elementType);
-            else elementFormatter = CreateTypeFormatter(elementType);
-
+            formatters.TryGetValue(elementType, out var elementFormatter);
+            elementFormatter??= CreateTypeFormatter(elementType);
             if (elementFormatter == null)
             {
                 Log.Error($"Collection {collectionType} is unformattable because its element type {elementType} is unformattable.");
                 return null;
             }
-
             var collectionFormatter = new CollectionFormatter(collectionType, elementType, elementFormatter, this);
-            var nullableCollectionFormatter = new NullPrefixFormatter(this, collectionFormatter);
-            AddFormatter(nullableCollectionFormatter);
+            var finalCollectionFormatter = new NullPrefixFormatter(this, collectionFormatter);
+            AddFormatter(finalCollectionFormatter);
 
-            return nullableCollectionFormatter;
+            return finalCollectionFormatter;
         }
         private IFormattable? CreateNullableFormatter(Type nullableType)
         {
             Type? underlyingType = Nullable.GetUnderlyingType(nullableType);
-
             if (underlyingType == null)
             {
                 Log.Error($"Nullable {nullableType.FullName} is unformattable. Failed to get the underlyin type of the nullable type {nullableType}.");
                 return null;
             }
-
-            IFormattable? underlyingTypeFormatter;
-            if (Formattable(underlyingType)) underlyingTypeFormatter = GetFormatter(underlyingType);
-            else underlyingTypeFormatter = CreateTypeFormatter(underlyingType);
-
+            formatters.TryGetValue(underlyingType, out var underlyingTypeFormatter);
+            underlyingTypeFormatter ??= CreateTypeFormatter(underlyingType);
             if (underlyingTypeFormatter == null)
             {
                 Log.Error($"Nullable {nullableType.FullName} is unformattable because its underlying type {underlyingType.FullName} is unformattable.");
                 return null;
             }
+            var NullableFormatter = new NullPrefixFormatter(this, underlyingTypeFormatter);
+            AddFormatter(NullableFormatter);
 
-            var nullPrefixFormatter = new NullPrefixFormatter(this, underlyingTypeFormatter);
-            AddFormatter(nullPrefixFormatter);
-
-            return nullPrefixFormatter;
+            return NullableFormatter;
         }
         private IFormattable? CreateStructFormatter(Type structType)
         {
@@ -390,31 +338,26 @@ namespace Networking.Serialization
                 return null;
             }
             var containerFormatter = CreateContainerFormatter(classType);
-            var nullPrefixFormatter = new NullPrefixFormatter(this, containerFormatter);
-            AddFormatter(nullPrefixFormatter);
+            var classFormatter = new NullPrefixFormatter(this, containerFormatter);
+            AddFormatter(classFormatter);
 
-            return nullPrefixFormatter;
+            return classFormatter;
         }
         private IFormattable? CreateArrayFormatter(Type arrayType)
         {
             Type? elementType = arrayType.GetElementType();
-
             if (elementType == null)
             {
                 Log.Error($"Array {arrayType} is unformattable. Failed to get the element Type of the array type {arrayType}.");
                 return null;
             }
-
-            IFormattable? elementFormatter;
-            if (Formattable(elementType)) elementFormatter = GetFormatter(elementType);
-            else elementFormatter = CreateTypeFormatter(elementType);
-
+            formatters.TryGetValue(arrayType,out var elementFormatter);
+            elementFormatter??= CreateTypeFormatter(elementType);
             if (elementFormatter == null)
             {
                 Log.Error($"Array {arrayType} is unformattable because its element type {elementType} is unformattable.");
                 return null;
             }
-
             var collectionFormatter = new CollectionFormatter(arrayType, elementType,elementFormatter, this);
             var arrayFormatter = new NullPrefixFormatter(this, collectionFormatter);
 
@@ -435,10 +378,10 @@ namespace Networking.Serialization
                 Log.Error("Attempt create formatter for a null type.");
                 return null;
             }
-            if (Formattable(type))
+            if (formatters.ContainsKey(type))
             {
                 Log.Warn($"Attempt to create Formatter for {type} when it already has a formatter.");
-                return GetFormatter(type);
+                return formatters[type];
             }
             if (type.IsInterface)
             {
@@ -446,7 +389,7 @@ namespace Networking.Serialization
                 return null;
             }
 
-            TryGetRepresentant(type, out var representantType);
+            representedTypes.TryGetValue(type, out var representantType);
             if (representantType != null) return CreateRepresentedFormatter(representantType);
 
             if (type.IsClass)
@@ -477,6 +420,12 @@ namespace Networking.Serialization
 
             Log.Error($"Attempt to create formatter for Type {type} failed. Type unsupported or unimplemented !");
             return null;
+        }
+
+        private void AddFormatter(IFormattable formatter)
+        {
+            Log.Info($"{formatter} formattable");
+            formatters.Add(formatter.Type, formatter);
         }
     }
 }
