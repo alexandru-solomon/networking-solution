@@ -9,7 +9,7 @@ namespace Networking.Serialization
     using System.Reflection;
     using System;
     using System.Collections;
-    using System.Reflection.Emit;
+    using System.ComponentModel;
 
     internal static class SerializationUtility
     {
@@ -35,9 +35,17 @@ namespace Networking.Serialization
         }
         internal sealed class RedefinitionSchema : Schema
         {
-            private RedefinitionSchema(Type type, SchemaTypes collectionType, bool nullSupport) : base(collectionType, type, nullSupport)
+            public readonly CollectionSchema RedefinitionTypeValueSchema;
+            private readonly MethodInfo redefinitionConverter;
+            public readonly Type redefinitionType;
+            public readonly Type redefinedType;
+            private RedefinitionSchema(Type redefinedType, Type redefinitionType, CollectionSchema redefinitionTypeValueSchema, MethodInfo redefinitionConverter) : 
+            base(redefinitionTypeValueSchema.SchemaType, redefinedType, redefinitionTypeValueSchema.NullSupport)
             {
-
+                RedefinitionTypeValueSchema = redefinitionTypeValueSchema;
+                this.redefinitionConverter = redefinitionConverter;
+                this.redefinitionType = redefinitionType;
+                this.redefinedType = redefinedType;
             }
             public static void TryCreate(Type type, out bool isRedefinition, out bool isValid, out Schema? redefinitionSchema)
             {
@@ -58,48 +66,58 @@ namespace Networking.Serialization
 
                 Type redefinedType = redefinitionInterfaceType.GetGenericArguments()[0];
 
-                TryCreateSchema(type, out var redefinitionTypeSchema);
-
-
-
-                if (redefinitionInterface.GetGenericTypeDefinition() != typeof(IRedefinition<>))
+                bool issuesFound = false;
+                if(type == redefinedType)
                 {
-                    Log.Error($"The first interface of the representant Type {} should be IRepresentant<\"representedTypeName\">");
+                    Log.Error($"The redefined type <{redefinedType}> must be different from the redefinition type {type}");
+                    issuesFound = true;
+                }
+                if(type.GetConstructor(Type.EmptyTypes) == null)
+                {
+                    Log.Error($"The redefinition type {type} must have a empty constructor.");
+                    issuesFound = true;
+                }                
+                if(type.GetConstructor(new[] { redefinedType }) == null)
+                {
+                    Log.Error($"The redefinition type {type} must have a one parameter constructor of the redefined type {redefinedType}");
+                    issuesFound = true;
+                }
+                if(TryGetSchema(redefinedType, out Schema? _))
+                {
+                    Log.Error($"Cannot redefine type {redefinedType} when already supported or added.");
+                    issuesFound = true;
+                }
+        
+                ContainerSchema.TryCreate(type, out bool isContainer,out bool valid, out var containerSchema);
+                if (containerSchema == null || valid == false)
+                {
+                    Log.Error($"Redefinition type {type} of the original type {redefinedType} is not serializable.");
                     return;
                 }
-                Type redefinedType = redefinitionInterface.GetGenericArguments()[0];
-                if (redefinitionType == redefinedType)
-                {
-                    Log.Error($"Representant {representantType} cannot represent itself. Change the generic value of the IRepesentant<> interface into a valid one.");
-                    return null;
-                }
-                bool noEmptyConstructor = representantType.GetConstructor(Type.EmptyTypes) == null;
-                if (noEmptyConstructor)
-                {
-                    Log.Error($"A empty constructor is required for a representant type. {representedType} will not be formatted.");
-                    return null;
-                }
-                formatters.TryGetValue(representantType, out var representantFormatter);
-                representantFormatter ??= CreateTypeFormatter(representantType);
-                if (representantFormatter == null)
-                {
-                    Log.Error($"{representedType} cannot be formatted because its representant is not formattable.");
-                    return null;
-                }
-                var representedFormatter = new RepresentedFormatter(representedType, representantFormatter);
+                if (issuesFound) return;
 
+                isValid = true;
 
                 Type genericRedefinitionType = typeof(IRedefinition<>).MakeGenericType(redefinedType);
-                var redefinerMethod = genericRedefinitionType.GetMethod(nameof(IRedefinition<Type>.GetRedefined));
+                var redefinitionConverter = genericRedefinitionType.GetMethod(nameof(IRedefinition<Type>.ToInitialDefinition));
+
+                Schema redefinitionTypeValueSchema = containerSchema;
+                if (containerSchema.NullSupport) redefinitionTypeValueSchema = ((NullableSchema)containerSchema).ValueSchema;
+
+                redefinitionSchema = new RedefinitionSchema(redefinedType, type, (CollectionSchema)redefinitionTypeValueSchema, redefinitionConverter);
+                if (redefinedType.IsValueType) return;
+                redefinitionSchema = new NullableSchema(redefinitionSchema); 
             }
 
-            public override void Serialize(Writer writer, object obj)
+            public override void Serialize(Writer writer, object originalInstance)
             {
-                throw new NotImplementedException();
+                object redefinedInstance = Activator.CreateInstance(redefinitionType, originalInstance);
+                RedefinitionTypeValueSchema.Serialize(writer, redefinedInstance);
             }
             public override object Deserialize(Reader reader)
             {
-                throw new NotImplementedException();
+                object redefinedValueInstance = RedefinitionTypeValueSchema.Deserialize(reader);
+                return redefinitionConverter.Invoke(redefinedValueInstance,null);
             }
         }
         internal sealed class EnumerationSchema : Schema
@@ -242,11 +260,7 @@ namespace Networking.Serialization
         {
             public readonly Schema ValueSchema;
 
-            internal NullableSchema(Schema valueSerializer) : base(valueSerializer.SchemaType, valueSerializer.Type, true)
-            {
-                ValueSchema = valueSerializer;
-            }
-            private NullableSchema(Type nullableType, Schema valueSchema) : base(SchemaTypes.Nullable, nullableType, true)
+            internal NullableSchema(Schema valueSchema) : base(valueSchema.SchemaType, valueSchema.Type, true)
             {
                 ValueSchema = valueSchema;
             }
@@ -351,7 +365,6 @@ namespace Networking.Serialization
 
             AddPrimitives();
         }
-
         private static void AddPrimitives()
         {
             Add<bool>((Writer writer, object value) => writer.Write((bool)value), (Reader reader) => { return reader.ReadBoolean(); }, false);
@@ -400,23 +413,31 @@ namespace Networking.Serialization
             else Log.Error($"{schema} already added.");
             return success;
         }
-
-        public static bool TryGetSchema(Type type, out Schema? schema)
-        {
-            return schemas.TryGetValue(type, out schema);
-        }
-        public static bool TryCreateSchema(Type type, out Schema? schema)
+        private static bool TryCreateSchema(Type type, out Schema? schema)
         {
             if (TryGetSchema(type, out schema)) { Log.Warn($"Attempt to create Schema for {type} when already existent."); return true; }
 
-            NullableSchema.TryCreate(type, out bool isNullable, out bool nullableValid, out schema); if (isNullable) return nullableValid;
             EnumerationSchema.TryCreate(type, out bool isEnum, out bool enumValid, out schema); if (isEnum) return enumValid;
-            ContainerSchema.TryCreate(type, out bool isContainer, out bool containerValid, out schema); return containerValid;
+            CollectionSchema.TryCreate(type, out bool isColl, out bool collValid, out schema); if(isColl) return collValid;
+            NullableSchema.TryCreate(type, out bool isNullable, out bool nullableValid, out schema); if (isNullable) return nullableValid;
+            RedefinitionSchema.TryCreate(type, out bool isRedef, out bool redefValid, out schema); if(isRedef) return redefValid;
+            ContainerSchema.TryCreate(type, out _, out bool containerValid, out schema); return containerValid;
+        }
+
+        public static bool TryGetSchema(Type type, out Schema? schema)
+        {
+            bool alreadyCreated = schemas.TryGetValue(type, out schema);
+            if (alreadyCreated) return true;
+
+            bool created = TryCreateSchema(type, out schema);
+
+            if(created == false || schema == null) return false;
+            if(created) AddSchema(schema); return true;
         }
     }
 }
 
 //Add the schemas when created
-//fix the stack overflow when creating redefined schema
+//fix the stack overflow when creating redefined schema-------------------------------------------------
 //Test
 //make as instance

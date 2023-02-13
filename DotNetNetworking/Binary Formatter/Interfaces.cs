@@ -7,7 +7,7 @@ namespace Networking.Serialization
     using System;
     public interface IRedefinition<RedefinedType>
     {
-        public RedefinedType GetRedefined();
+        public RedefinedType ToInitialDefinition();
     }
 
     public interface IFormattable

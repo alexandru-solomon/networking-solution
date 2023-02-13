@@ -26,7 +26,7 @@ namespace Networking.Unity.Serialization
                 x = vector2.x;
                 y = vector2.y;
             }
-            public Vector2 GetRedefined()
+            public Vector2 ToInitialDefinition()
             {
                 return new Vector2(x, y); 
             }

@@ -103,7 +103,7 @@ public enum TestEnum { a, b, c }
         
     }
 
-    public Vector2 GetRedefined()
+    public Vector2 ToInitialDefinition()
     {
         return new Vector2(x, y);
     }

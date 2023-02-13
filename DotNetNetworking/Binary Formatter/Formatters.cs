@@ -114,7 +114,7 @@ namespace Networking.Serialization
             Type = representedType;
             NullSupport = false;
             Type genericInterfaceType = typeof(IRedefinition<>).MakeGenericType(representedType);
-            deserializeMethod = genericInterfaceType.GetMethod(nameof(IRedefinition<Type>.GetRedefined));
+            deserializeMethod = genericInterfaceType.GetMethod(nameof(IRedefinition<Type>.ToInitialDefinition));
 
             this.representantFormatter = representantFormatter;
             representantType = representantFormatter.Type;
