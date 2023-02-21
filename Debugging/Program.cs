@@ -87,7 +87,7 @@ public enum TestEnum { a, b, c }
         WriteLine(vec.x + " " + vec.y);
     }
 }
-[Packet] public class NetVector2:IRedefinition<Vector2>
+[Packet] public class NetVector2:IRedefinition<TestEnum>
 {
     public NetVector2() { }
 
@@ -103,8 +103,8 @@ public enum TestEnum { a, b, c }
         
     }
 
-    public Vector2 ToInitialDefinition()
+    public TestEnum ToInitialDefinition()
     {
-        return new Vector2(x, y);
+        return TestEnum.a;
     }
 }

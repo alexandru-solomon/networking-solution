@@ -9,6 +9,6 @@ public abstract class NetManager
 {
     public void Initialize()
     {
-
+       
     }   
 }

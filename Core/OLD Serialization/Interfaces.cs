@@ -5,7 +5,7 @@
 namespace Networking.Serialization
 {
     using System;
-    public interface IRedefinition<RedefinedType>
+    public interface IRedefinition<RedefinedType> where RedefinedType : struct
     {
         public RedefinedType ToInitialDefinition();
     }

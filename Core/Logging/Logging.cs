@@ -1,7 +1,6 @@
 ﻿
-namespace Networking.Logging
+namespace Lithium.Logging
 {
-    using System.Diagnostics;
     using System;
     public class Log
     {

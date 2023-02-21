@@ -1,13 +1,11 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<TargetFramework>netstandard2.1</TargetFramework>
 		<Nullable>enable</Nullable>
+		<AssemblyName>$(SolutionName).Unity</AssemblyName>
+		<RootNamespace>$(SolutionName).Unity</RootNamespace>
 	</PropertyGroup>
-
-	<ItemGroup>
-	  <ProjectReference Include="..\DotNetNetworking\DotNetNetworking.csproj" />
-	</ItemGroup>
 
 	<ItemGroup>
 	  <Reference Include="UnityEngine">
@@ -17,5 +15,4 @@
 	    <HintPath>Unity Dependecies\UnityEngine.CoreModule.dll</HintPath>
 	  </Reference>
 	</ItemGroup>
-
 </Project>
