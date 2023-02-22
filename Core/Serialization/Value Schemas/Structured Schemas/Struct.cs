@@ -4,21 +4,20 @@ namespace Lithium.Serialization
 {
     using System.Collections.Generic;
     using System.Reflection;
-    using Lithium.Logging;
     using System.IO;
     using System;
 
     internal partial class DataSchema
     {
-        internal sealed partial class ValueSchema : ObjectSchema
+        private sealed partial class ValueSchema : TypeSchema
         {
-            internal class Struct : TypeSchema
+            internal class Struct : StructuredSerializer
             {
                 public class FieldSchema
                 {
                     readonly FieldInfo field;
-                    readonly ObjectSchema schema;
-                    public FieldSchema(FieldInfo fieldInfo, ObjectSchema fieldTypeSchema)
+                    readonly TypeSchema schema;
+                    public FieldSchema(FieldInfo fieldInfo, TypeSchema fieldTypeSchema)
                     {
                         schema = fieldTypeSchema;
                         field = fieldInfo;
@@ -45,10 +44,8 @@ namespace Lithium.Serialization
                     {
                         Type fieldType = fieldInfo.FieldType;
 
-                        bool SchemaExists = utility.TryGetSchema(fieldType, out var fieldTypeSchema);
-                        if (!SchemaExists) utility.TryCreateSchema(fieldType, out fieldTypeSchema);
-
-                        if (fieldTypeSchema == null)
+                        bool schemaValid = utility.TryGetTypeSchema(fieldType, out var fieldTypeSchema);
+                        if (!schemaValid || fieldTypeSchema == null)
                         {
                             utility.Log.Error($"Field \"{fieldInfo.FieldType} {fieldInfo.Name}\" from the {structType} struct will be ignored.");
                             continue;
@@ -60,18 +57,15 @@ namespace Lithium.Serialization
                     this.structType = structType;
                     this.fieldSchemas = fieldSchemas.ToArray();
                 }
-                public static bool TryCreate(Type type, out bool isStruct, out bool isValid, out ObjectSchema? schema, DataSchema utility)
+                public static void TryCreate(Type type, out bool isStruct, out bool structValid, out TypeSchema? schema, DataSchema utility)
                 {
-                    isStruct = false; isValid = false; schema = null;
+                    isStruct = false; structValid = false; schema = null;
 
                     if (type.IsValueType)
                     {
-                        isValid = true; isStruct = true;
-                        schema = new ValueSchema(SchemaType.Struct, type, new Struct(type,utility));
-                        return true;
+                        structValid = true; isStruct = true;
+                        schema = new ValueSchema(StructureType.Struct, type, new Struct(type,utility));
                     }
-
-                    return false;
                 }
 
                 public override void Serialize(BinaryWriter writer, object structInstance)

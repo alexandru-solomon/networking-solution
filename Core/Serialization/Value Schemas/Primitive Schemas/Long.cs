@@ -5,14 +5,14 @@ namespace Lithium.Serialization
 
     internal partial class DataSchema
     {
-        private sealed partial class ValueSchema : ObjectSchema
+        private sealed partial class ValueSchema : TypeSchema
         {
-            internal sealed class Long : TypeSchema
+            internal sealed class Long : StructuredSerializer
             {
                 private Long() { }
                 internal static ValueSchema Create()
                 {
-                    return new ValueSchema(SchemaType.Struct, typeof(long), new Long());
+                    return new ValueSchema(StructureType.Struct, typeof(long), new Long());
                 }
 
                 public override object Deserialize(BinaryReader reader)

@@ -9,17 +9,11 @@ namespace Lithium.Serialization
 {
     internal partial class DataSchema
     {
-        private partial class ReferenceSchema : ObjectSchema
+        private partial class ReferenceSchema : TypeSchema
         {
             private enum State { Null, Data, Reference }
 
-            private readonly List<object> referenceBuffer;
-            private readonly TypeSchema typeSchema;
-            public ReferenceSchema(SchemaType schemaType, Type type, TypeSchema schema, List<object> referenceBuffer) : base(schemaType, type, true)
-            {
-                typeSchema = schema;
-                this.referenceBuffer = referenceBuffer;
-            }
+            private ReferenceSchema(ValueSerializer valueSerializer, DataSchema dataSchema) : base(dataSchema, valueSerializer, true) { }
 
             public override object? Deserialize(BinaryReader reader)
             {
@@ -27,15 +21,15 @@ namespace Lithium.Serialization
 
                 if (state == State.Data)
                 {
-                    object value = typeSchema.Deserialize(reader);
-                    referenceBuffer.Add(value);
+                    object value = ValueSerializer.Deserialize(reader);
+                    DataSchema.referenceBuffer.Add(value);
                     return value;
                 }
                 if (state == State.Reference)
                 {
                     int referenceID = reader.ReadInt32();
 
-                    return referenceBuffer[referenceID];
+                    return DataSchema.referenceBuffer[referenceID];
                 }
 
                 return null;
@@ -48,16 +42,16 @@ namespace Lithium.Serialization
                     writer.Write((byte)State.Null);
                     return;
                 }
-                if (referenceBuffer.Contains(value))
+                if (DataSchema.referenceBuffer.Contains(value))
                 {
                     writer.Write((byte)State.Reference);
-                    writer.Write(referenceBuffer.IndexOf(value));
+                    writer.Write(DataSchema.referenceBuffer.IndexOf(value));
                     return;
                 }
 
-                referenceBuffer.Add(value);
+                DataSchema.referenceBuffer.Add(value);
                 writer.Write((byte)State.Data);
-                typeSchema.Serialize(writer, value);
+                ValueSerializer.Serialize(writer, value);
             }
         }
     }

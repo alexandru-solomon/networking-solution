@@ -5,23 +5,23 @@ namespace Lithium.Serialization
 
     internal partial class DataSchema
     {
-        private sealed partial class ValueSchema : ObjectSchema
+        private sealed partial class ValueSchema : TypeSchema
         {
-            internal sealed class ULong : TypeSchema
+            internal sealed class Decimal : StructuredSerializer
             {
-                private ULong() { }
+                private Decimal() { }
                 internal static ValueSchema Create()
                 {
-                    return new ValueSchema(SchemaType.Struct, typeof(ulong), new ULong());
+                    return new ValueSchema(StructureType.Struct, typeof(decimal), new Decimal());
                 }
 
                 public override object Deserialize(BinaryReader reader)
                 {
-                    return reader.ReadUInt64();
+                    return reader.ReadDecimal();
                 }
                 public override void Serialize(BinaryWriter writer, object obj)
                 {
-                    writer.Write((ulong)obj);
+                    writer.Write((decimal)obj);
                 }
             }
         }

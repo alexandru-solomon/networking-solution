@@ -5,23 +5,23 @@ namespace Lithium.Serialization
 
     internal partial class DataSchema
     {
-        private sealed partial class ValueSchema : ObjectSchema
+        private sealed partial class ValueSchema : TypeSchema
         {
-            internal sealed class Char : TypeSchema
+            internal sealed class SByte : StructuredSerializer
             {
-                private Char() { }
+                private SByte() { }
                 internal static ValueSchema Create()
                 {
-                    return new ValueSchema(SchemaType.Struct, typeof(char), new Char());
+                    return new ValueSchema(StructureType.Struct, typeof(sbyte), new SByte());
                 }
 
                 public override object Deserialize(BinaryReader reader)
                 {
-                    return reader.ReadChar();
+                    return reader.ReadSByte();
                 }
                 public override void Serialize(BinaryWriter writer, object obj)
                 {
-                    writer.Write((char)obj);
+                    writer.Write((sbyte)obj);
                 }
             }
         }

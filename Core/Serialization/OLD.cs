@@ -11,7 +11,7 @@
     using System.Reflection;
     using System;
 
-    internal sealed class PrimitiveSchema : Schema
+   // internal sealed class PrimitiveSchema : Schema
     {
         public delegate void WriteMethod(Writer writerInstance, object value);
         public delegate object ReadMethod(Reader readerInstance);
@@ -19,7 +19,7 @@
         private readonly WriteMethod writeMethod;
         private readonly ReadMethod readMethod;
 
-        public PrimitiveSchema(Type type, WriteMethod writeMethod, ReadMethod readMethod) : base(SchemaType.Primitive, type, false)
+        public PrimitiveSchema(Type type, WriteMethod writeMethod, ReadMethod readMethod) : base(StructureType.Primitive, type, false)
         {
             this.writeMethod = writeMethod;
             this.readMethod = readMethod;
@@ -56,7 +56,7 @@
 
         public readonly FieldSchema[] fieldSchemas;
 
-        private ContainerSchema(SchemaType contaienerSchemaType, Type containerType) : base(contaienerSchemaType, containerType, false)
+        private ContainerSchema(StructureType contaienerSchemaType, Type containerType) : base(contaienerSchemaType, containerType, false)
         {
             var fieldsInfo = Type.GetFields();
             var fieldSchemas = new List<FieldSchema>();
@@ -87,7 +87,7 @@
             {
                 isValid = true; isContainer = true;
 
-                ContainerSchema valueSchema = new ContainerSchema(SchemaType.Class, type);
+                ContainerSchema valueSchema = new ContainerSchema(StructureType.Class, type);
                 NullableSchema classSchema = new NullableSchema(valueSchema);
 
                 schema = classSchema;
@@ -97,7 +97,7 @@
             {
                 isValid = true; isContainer = true;
 
-                ContainerSchema structSchema = new ContainerSchema(SchemaType.Struct, type);
+                ContainerSchema structSchema = new ContainerSchema(StructureType.Struct, type);
 
                 schema = structSchema;
                 return true;
@@ -127,13 +127,10 @@
 
     internal static class ReferenceTypes
     {
-        private static class ClassSchema
-        {
-        }
         private sealed class CollectionSchema : Schema
         {
             private readonly Schema elementTypeSchema;
-            public CollectionSchema(Type collectionType, Schema elementTypeSchema) : base(SchemaType.Collection, collectionType, false)
+            public CollectionSchema(Type collectionType, Schema elementTypeSchema) : base(StructureType.Collection, collectionType, false)
             {
                 this.elementTypeSchema = elementTypeSchema;
             }
@@ -179,10 +176,6 @@
     }
     internal static class ValueTypes
     {
-        internal sealed class StructSchema
-        {
-
-        }
         internal sealed class NullableSchema : Schema
         {
             public readonly Schema ValueSchema;
@@ -237,7 +230,7 @@
         }
         internal sealed class EnumerationSchema : Schema
         {
-            private EnumerationSchema(Type enumType) : base(SchemaType.Enum, enumType, false) { }
+            private EnumerationSchema(Type enumType) : base(StructureType.Enum, enumType, false) { }
             public static void TryCreate(Type type, out bool isEnum, out bool isValid, out Schema? enumeratorSchema)
             {
                 enumeratorSchema = null;
