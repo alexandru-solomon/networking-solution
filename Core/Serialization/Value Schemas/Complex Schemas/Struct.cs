@@ -11,60 +11,58 @@ namespace Lithium.Serialization
     {
         private sealed partial class ValueSchema : TypeSchema
         {
-            internal class Class : StructuredSerializer
+            internal class Struct : ValueSerializer
             {
                 public class FieldSchema
                 {
-                    readonly FieldInfo field;
-                    readonly TypeSchema schema;
+                    readonly FieldInfo fieldInfo;
+                    readonly TypeSchema typeSchema;
                     public FieldSchema(FieldInfo fieldInfo, TypeSchema fieldTypeSchema)
                     {
-                        schema = fieldTypeSchema;
-                        field = fieldInfo;
+                        typeSchema = fieldTypeSchema;
+                        this.fieldInfo = fieldInfo;
                     }
                     public void Serialize(BinaryWriter writer, object instance)
                     {
-                        schema.Serialize(writer, field.GetValue(instance));
+                        typeSchema.Serialize(writer, fieldInfo.GetValue(instance));
                     }
                     public void Deserialize(BinaryReader reader, object instance)
                     {
-                        field.SetValue(instance, schema.Deserialize(reader));
+                        fieldInfo.SetValue(instance, typeSchema.Deserialize(reader));
                     }
                 }
 
                 private readonly FieldSchema[] fieldSchemas;
-                private readonly Type classType;
 
-                private Class(Type classType, DataSchema utility)
+                private Struct(Type structType, DataSchema dataSchema):base(structType,StructureType.Struct)
                 {
-                    var fieldsInfo = classType.GetFields();
+                    var fieldsInfo = structType.GetFields();
                     var fieldSchemas = new List<FieldSchema>();
 
                     foreach (FieldInfo fieldInfo in fieldsInfo)
                     {
                         Type fieldType = fieldInfo.FieldType;
 
-                        bool schemaValid = utility.TryGetTypeSchema(fieldType, out var fieldTypeSchema);
+                        bool schemaValid = dataSchema.TryGetTypeSchema(fieldType, out var fieldTypeSchema);
                         if (!schemaValid || fieldTypeSchema == null)
                         {
-                            utility.Log.Error($"Field \"{fieldInfo.FieldType} {fieldInfo.Name}\" from the {classType} class will be ignored.");
+                            dataSchema.Log.Error($"Field \"{fieldInfo.FieldType} {fieldInfo.Name}\" from the {structType} struct will be ignored.");
                             continue;
                         }
 
                         fieldSchemas.Add(new FieldSchema(fieldInfo, fieldTypeSchema));
                     }
 
-                    this.classType = classType;
                     this.fieldSchemas = fieldSchemas.ToArray();
                 }
-                public static void TryCreate(Type type, out bool isClass, out bool classValid, out TypeSchema? schema, DataSchema utility)
+                public static void TryCreate(DataSchema dataSchema, Type structType, out bool isStruct, out bool structValid, out TypeSchema? schema)
                 {
-                    isClass = false; classValid = false; schema = null;
+                    isStruct = false; structValid = false; schema = null;
 
-                    if (type.IsValueType)
+                    if (structType.IsValueType)
                     {
-                        classValid = true; isClass = true;
-                        schema = new ValueSchema(StructureType.Class, type, new Class(type, utility));
+                        structValid = true; isStruct = true;
+                        schema = new ValueSchema(dataSchema,new Struct(structType, dataSchema));
                     }
                 }
 
@@ -77,7 +75,7 @@ namespace Lithium.Serialization
                 }
                 public override object Deserialize(BinaryReader reader)
                 {
-                    object structInstance = Activator.CreateInstance(classType);
+                    object structInstance = Activator.CreateInstance(ValueType);
                     foreach (FieldSchema fieldSchema in fieldSchemas)
                     {
                         fieldSchema.Deserialize(reader, structInstance);

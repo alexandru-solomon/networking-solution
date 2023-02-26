@@ -3,39 +3,37 @@ namespace Lithium.Serialization
 {
     using System;
     using System.IO;
-    using UnityEngine;
-    using System.Collections.Generic;
     using System.Collections;
 
     internal partial class DataSchema
     {
         private sealed partial class ReferenceSchema : TypeSchema
         {
-            private sealed class Collection : StructuredSerializer
+            internal sealed class Collection : ValueSerializer
             {
-                private readonly TypeSchema elementSchema;
-                public Collection(Type collectionType, Schema elementTypeSchema) : base(StructureType.Collection, collectionType, false)
+                private readonly TypeSchema elementTypeSchema;
+                public Collection(Type collectionType, TypeSchema elementTypeSchema) : base(collectionType, StructureType.Collection)
                 {
                     this.elementTypeSchema = elementTypeSchema;
                 }
-                public static void TryCreate(Type type, out bool isCollection, out bool isValid, out StructuredSerializer? collectionSchema, DataSchema dataSchema)
+                public static void TryCreate(DataSchema dataSchema, Type collectionType, out bool isCollection, out bool isValid, out TypeSchema? collectionSchema)
                 {
                     isValid = false; collectionSchema = null;
 
-                    isCollection = typeof(ICollection).IsAssignableFrom(type); if (!isCollection) return;
+                    isCollection = typeof(ICollection).IsAssignableFrom(collectionType); if (!isCollection) return;
 
-                    Type elementType = type.GetGenericArguments()[0];
+                    Type elementType = collectionType.GetGenericArguments()[0];
 
-                    bool elementSchemaValid = dataSchema.TryGetTypeSchema(elementType, out TypeSchema? elementTypeSchema);
+                    bool schemaValid = dataSchema.TryGetTypeSchema(elementType, out TypeSchema? elementTypeSchema);
 
-                    if (elementTypeSchema == null)
+                    if (elementTypeSchema == null ||schemaValid == false)
                     {
-                        Log.Error($"{type} is not serializable because its element type {elementType} is not serializable");
+                        dataSchema.Log.Error($"{collectionType} is not serializable because its element type {elementType} is not serializable");
                         return;
                     }
 
                     isValid = true;
-                    collectionSchema = new CollectionSchema(type, elementTypeSchema);
+                    collectionSchema = new ReferenceSchema(dataSchema,new Collection(collectionType, elementTypeSchema));
                 }
 
                 public override void Serialize(BinaryWriter writer, object collectionInstance)
@@ -43,7 +41,7 @@ namespace Lithium.Serialization
                     ICollection collection = (ICollection)collectionInstance;
                     IEnumerable enumerator = (IEnumerable)collectionInstance;
                     writer.Write(collection.Count);
-                    foreach (var element in enumerator) elementSchema.Serialize(writer, element);
+                    foreach (var element in enumerator) elementTypeSchema.Serialize(writer, element);
                 }
                 public override object Deserialize(BinaryReader reader)
                 {
@@ -53,7 +51,7 @@ namespace Lithium.Serialization
                         array.SetValue(elementTypeSchema.Deserialize(reader), elementId);
 
                     if (elementTypeSchema.Type.IsArray) return array;
-                    else return Activator.CreateInstance(Type, array);
+                    else return Activator.CreateInstance(ValueType, array);
                 }
             }
         }

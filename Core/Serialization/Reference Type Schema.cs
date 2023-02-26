@@ -9,11 +9,11 @@ namespace Lithium.Serialization
 {
     internal partial class DataSchema
     {
-        private partial class ReferenceSchema : TypeSchema
+        private sealed partial class ReferenceSchema : TypeSchema
         {
             private enum State { Null, Data, Reference }
 
-            private ReferenceSchema(ValueSerializer valueSerializer, DataSchema dataSchema) : base(dataSchema, valueSerializer, true) { }
+            private ReferenceSchema(DataSchema dataSchema,ValueSerializer valueSerializer) : base(dataSchema, valueSerializer, true) { }
 
             public override object? Deserialize(BinaryReader reader)
             {

@@ -1,7 +1,7 @@
 //Copyright 2022, Alexandru Solomon, All rights reserved.
 //Contacts: Alexandru.Solomon.inbox@gmail.com
 
-namespace Networking
+namespace Lithium
 {
     public class ConInfo
     { 

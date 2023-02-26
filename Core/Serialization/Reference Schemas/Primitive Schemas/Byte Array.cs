@@ -2,28 +2,26 @@
 namespace Lithium.Serialization
 {
     using System.IO;
-    using System.Collections.Generic;
 
     internal partial class DataSchema
     {
         private sealed partial class ReferenceSchema : TypeSchema
         {
-            internal sealed class ByteArray : PrimitiveSerializer
+            internal sealed class ByteArray : ValueSerializer
             {
-                private ByteArray() { }
-                internal static ReferenceSchema Create(List<object> referenceBuffer)
+                private ByteArray() : base(typeof(byte[]), StructureType.Primitive) { }
+                internal static ReferenceSchema Create(DataSchema dataSchema)
                 {
-                    return new ReferenceSchema(StructureType.Class, typeof(byte[]), new ByteArray(), referenceBuffer);
+                    return new ReferenceSchema(new ByteArray(), dataSchema);
                 }
-
                 public override object Deserialize(BinaryReader reader)
                 {
                     int lenght = reader.ReadInt32();
                     return reader.ReadBytes(lenght);
                 }
-                public override void Serialize(BinaryWriter writer, object obj)
+                public override void Serialize(BinaryWriter writer, object reference)
                 {
-                    byte[] bytes = (byte[])obj;
+                    byte[] bytes = (byte[])reference;
                     writer.Write(bytes.Length);
                     writer.Write(bytes);
                 }

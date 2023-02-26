@@ -4,7 +4,7 @@
 using System.Reflection;
 using System;
 
-namespace Networking 
+namespace Lithium 
 {
     public class NetClass
     {

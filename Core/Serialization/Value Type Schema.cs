@@ -5,7 +5,7 @@ namespace Lithium.Serialization
 {
     internal partial class DataSchema
     {
-        private partial class ValueSchema : TypeSchema
+        private sealed partial class ValueSchema : TypeSchema
         {
             private ValueSchema(DataSchema dataSchema, ValueSerializer valueSerializer) : base(dataSchema,valueSerializer, false) { }
 

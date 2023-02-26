@@ -7,12 +7,12 @@ namespace Lithium.Serialization
     {
         private sealed partial class ValueSchema : TypeSchema
         {
-            internal sealed class Bool : StructuredSerializer
+            internal sealed class Bool : ValueSerializer
             {
-                private Bool() { }
-                internal static ValueSchema Create()
+                private Bool():base(typeof(bool), StructureType.Primitive) { }
+                internal static ValueSchema Create(DataSchema dataSchema)
                 {
-                    return new ValueSchema(StructureType.Struct, typeof(bool), new Bool());
+                    return new ValueSchema(dataSchema,new Bool());
                 }
 
                 public override object Deserialize(BinaryReader reader)

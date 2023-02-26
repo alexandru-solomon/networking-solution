@@ -8,12 +8,12 @@ namespace Lithium.Serialization
     {
         private sealed partial class ValueSchema : TypeSchema
         {
-            internal sealed class UShort : StructuredSerializer
+            internal sealed class UShort : ValueSerializer
             {
-                private UShort() { }
-                internal static ValueSchema Create()
+                private UShort():base(typeof(ushort), StructureType.Primitive) { }
+                internal static ValueSchema Create(DataSchema dataSchema)
                 {
-                    return new ValueSchema(StructureType.Struct, typeof(ushort), new UShort());
+                    return new ValueSchema(dataSchema, new UShort());
                 }
 
                 public override object Deserialize(BinaryReader reader)
@@ -27,4 +27,4 @@ namespace Lithium.Serialization
             }
         }
     }
-}
+}   

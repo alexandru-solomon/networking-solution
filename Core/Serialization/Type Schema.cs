@@ -11,12 +11,12 @@ namespace Lithium.Serialization
     }
     internal abstract class TypeSchema
     {
-        public readonly DataSchema DataSchema;
-        public readonly bool NullSupport;
-        public Type Type { get { return ValueSerializer.valueType; } }
-        public StructureType StructureType { get { return ValueSerializer.StructureType; } }
+        internal readonly DataSchema DataSchema;
+        internal readonly bool NullSupport;
+        internal Type Type { get { return ValueSerializer.ValueType; } }
+        internal StructureType StructureType { get { return ValueSerializer.StructureType; } }
 
-        protected readonly ValueSerializer ValueSerializer;
+        internal readonly ValueSerializer ValueSerializer;
 
         protected TypeSchema(DataSchema dataSchema,ValueSerializer valueSerializer, bool nullSupport)
         {
