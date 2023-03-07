@@ -6,7 +6,7 @@ using System;
 
 namespace Lithium 
 {
-    public class NetClass
+    public class NetworkClass
     {
         public bool IsServer { get; internal set; }
         public bool IsClient { get; internal set; }
@@ -78,7 +78,7 @@ namespace Lithium
         }
 
 #endif
-        public Action<object, NetClass> infoEvent, errorEvent, warningEvent;
+        public Action<object, NetworkClass> infoEvent, errorEvent, warningEvent;
         protected void Info(object message) => infoEvent?.Invoke(message,this);
         protected void Warn(object message) => warningEvent?.Invoke(message,this);
         protected void Error(object message) => errorEvent?.Invoke(message,this);

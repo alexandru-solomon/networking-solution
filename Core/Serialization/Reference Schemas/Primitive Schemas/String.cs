@@ -12,7 +12,7 @@ namespace Lithium.Serialization
                 private String(): base(typeof(string), StructureType.Primitive) { }
                 internal static ReferenceSchema Create(DataSchema dataSchema)
                 {
-                    return new ReferenceSchema(new String(), dataSchema);
+                    return new ReferenceSchema(dataSchema, new String());
                 }
 
                 public override object Deserialize(BinaryReader reader)
