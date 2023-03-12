@@ -6,14 +6,14 @@
         {
             return GetHash(data, 0, data.Length);
         }
-        public static uint GetHash(byte[] data, int offset, int length)
+        public static uint GetHash(byte[] data, int offset, int size)
         {
             const uint Seed = 0x55123144;
             const uint XorOut = 0x84123111;
 
             uint crc = Seed;
 
-            for (int i = offset; i < offset+length; i++)
+            for (int i = offset; i < offset+size; i++)
             {
                 byte index = (byte)((crc ^ data[i]) & 0xFF);
                 crc = Crc32Table[index] ^ ((crc >> 8) & 0x00FFFFFF);
