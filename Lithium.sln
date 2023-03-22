@@ -5,17 +5,19 @@ VisualStudioVersion = 17.4.33122.133
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Debugging", "Debugging\Debugging.csproj", "{1B16FF66-1214-4E9E-8EA9-B9996CD80FF2}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Transports", "Transports", "{8FAA32B9-9EF9-4BD1-BAFE-065DA8F142BD}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Networks", "Networks", "{8FAA32B9-9EF9-4BD1-BAFE-065DA8F142BD}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Adaptations", "Adaptations", "{3494C73E-3372-4A8A-815B-7A4D178FCAF7}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = ".NET Transport", "Transports\.NET Transport\.NET Transport.csproj", "{325CBA9F-C7A5-416A-B442-20AA859D868F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = ".NET Network", "Transports\.NET Transport\.NET Network.csproj", "{325CBA9F-C7A5-416A-B442-20AA859D868F}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Steam Transport", "Transports\Steam Transport\Steam Transport.csproj", "{B9F0FCFF-1EC2-4292-82BB-A96F59594B2C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Steam Network", "Transports\Steam Transport\Steam Network.csproj", "{B9F0FCFF-1EC2-4292-82BB-A96F59594B2C}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Unity Adaptation", "Adaptations\Unity Adaptation\Unity Adaptation.csproj", "{D0469540-3DBB-4874-A037-8BF147CED69C}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Core", "Core\Core.csproj", "{46197323-FCBA-4AC0-907B-A4962AED6150}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Web Network", "Web Transport\Web Network.csproj", "{094F26F9-D643-4CC8-BCC6-A0DD69023387}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -43,6 +45,10 @@ Global
 		{46197323-FCBA-4AC0-907B-A4962AED6150}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{46197323-FCBA-4AC0-907B-A4962AED6150}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{46197323-FCBA-4AC0-907B-A4962AED6150}.Release|Any CPU.Build.0 = Release|Any CPU
+		{094F26F9-D643-4CC8-BCC6-A0DD69023387}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{094F26F9-D643-4CC8-BCC6-A0DD69023387}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{094F26F9-D643-4CC8-BCC6-A0DD69023387}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{094F26F9-D643-4CC8-BCC6-A0DD69023387}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -51,6 +57,7 @@ Global
 		{325CBA9F-C7A5-416A-B442-20AA859D868F} = {8FAA32B9-9EF9-4BD1-BAFE-065DA8F142BD}
 		{B9F0FCFF-1EC2-4292-82BB-A96F59594B2C} = {8FAA32B9-9EF9-4BD1-BAFE-065DA8F142BD}
 		{D0469540-3DBB-4874-A037-8BF147CED69C} = {3494C73E-3372-4A8A-815B-7A4D178FCAF7}
+		{094F26F9-D643-4CC8-BCC6-A0DD69023387} = {8FAA32B9-9EF9-4BD1-BAFE-065DA8F142BD}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {9E8B187F-A505-45D4-A7A1-610FF56F67C5}

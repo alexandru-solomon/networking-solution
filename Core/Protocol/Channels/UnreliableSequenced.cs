@@ -2,12 +2,14 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace Lithium.Net
+namespace Lithium.Protocol
 {
     internal sealed class UnreliableSequencedEmitter : Emitter
     {
         int lastSequence = 0;
         const int SEQUENCE_SIZE = sizeof(int);
+
+        public UnreliableSequencedEmitter(ConnectionInfo connectionInfo) : base(connectionInfo) { }
 
         internal override void SendDatagram(byte[] data, int offset, int length)
         {
@@ -43,6 +45,4 @@ namespace Lithium.Net
             }
         }
     }
-
-    
 }

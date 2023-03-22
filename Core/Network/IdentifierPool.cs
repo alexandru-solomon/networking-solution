@@ -1,11 +1,11 @@
 ﻿using System.Collections.Generic;
 
-namespace Lithium.Transport.Net
+namespace Lithium
 {
     internal class IdentifierPool
     {
-        int NextIdentifier = 0;
-        Queue<int> AvailableIdentifiers = new Queue<int>();
+        private int NextIdentifier = 0;
+        private readonly Queue<int> AvailableIdentifiers = new Queue<int>();
 
         public int Rent()
         {

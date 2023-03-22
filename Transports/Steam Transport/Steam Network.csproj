@@ -3,8 +3,8 @@
 	<PropertyGroup>
 		<TargetFramework>netstandard2.1</TargetFramework>
 		<Nullable>enable</Nullable>
-		<AssemblyName>$(SolutionName).Transport.Steam</AssemblyName>
-		<RootNamespace>$(SolutionName).Transport.Steam</RootNamespace>
+		<AssemblyName>$(SolutionName).Steam</AssemblyName>
+		<RootNamespace>$(SolutionName).Steam</RootNamespace>
 	</PropertyGroup>
 
 	<ItemGroup>

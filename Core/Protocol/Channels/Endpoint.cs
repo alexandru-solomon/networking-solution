@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace Lithium
+namespace Lithium.Protocol
 {
     internal abstract class Endpoint
     {
