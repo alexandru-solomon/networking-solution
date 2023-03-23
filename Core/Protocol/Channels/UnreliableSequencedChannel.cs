@@ -1,15 +1,18 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Lithium.Protocol
 {
+    internal sealed class UnreliableSequencedChannelConfig : ChannelConfig 
+    {
+        public UnreliableSequencedChannelConfig() : base(ChannelType.UnreliableSequenced) { }
+    }
+
     internal sealed class UnreliableSequencedEmitter : Emitter
     {
         int lastSequence = 0;
         const int SEQUENCE_SIZE = sizeof(int);
 
-        public UnreliableSequencedEmitter(ConnectionInfo connectionInfo) : base(connectionInfo) { }
+        public UnreliableSequencedEmitter(UnreliableSequencedChannelConfig config, ConnectionInfo connectionInfo) : base(config,connectionInfo) { }
 
         internal override void SendDatagram(byte[] data, int offset, int length)
         {
@@ -23,7 +26,7 @@ namespace Lithium.Protocol
         const int HALF_SEQ_SIZE = int.MaxValue / 2;
         const int SEQUENCE_SIZE = sizeof(int);
 
-        public UnreliableSequencedReceiver(ConnectionInfo connectionInfo) : base(connectionInfo) { }
+        public UnreliableSequencedReceiver(UnreliableSequencedChannelConfig config, ConnectionInfo connectionInfo) : base(config, connectionInfo) { }
 
         internal override void RecieveDatagram(byte[] data, int offset, int size)
         {
