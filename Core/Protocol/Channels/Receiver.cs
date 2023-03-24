@@ -8,7 +8,7 @@ namespace Lithium.Protocol
     {
         public delegate void DataReceivedEvent(byte[] data, int offset, int length);
         public DataReceivedEvent? DataReceivedEventHandlers;
-        public Receiver(ChannelConfig config, ConnectionInfo connectionInfo) : base(config, connectionInfo) { }
+        public Receiver(ChannelConfig config, ConnectionInfo conInfo) : base(config, conInfo) { }
 
         internal abstract void RecieveDatagram(byte[] data, int offset, int size);
     }

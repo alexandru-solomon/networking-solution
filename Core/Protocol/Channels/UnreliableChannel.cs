@@ -8,7 +8,8 @@ namespace Lithium.Protocol
 
     internal sealed class UnreliableEmitter : Emitter
     {
-        public UnreliableEmitter(ISrudcpServerManager server, UnreliableSequencedChannelConfig config, ConnectionInfo connectionInfo) : base(config,connectionInfo) { }
+        ISrudcpServerManager
+        public UnreliableEmitter(ISrudcpServerManager server, SrudpcScheduler scheduler, UnreliableChannelConfig config, ConnectionInfo conInfo) : base(config,conInfo,scheduler) { }
 
         
         internal override void SendDatagram(byte[] data, int offset, int length)
