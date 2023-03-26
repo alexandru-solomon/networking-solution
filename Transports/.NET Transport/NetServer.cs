@@ -6,7 +6,7 @@ using Lithium.Protocol;
 
 namespace Lithium.Net
 {
-    public sealed class NetServer : Network.Server, ISrudcpServerManager
+    public sealed class NetServer : Network.Server,ISrudcpManager, ISrudpManager
     {
         public const ushort DEFAULT_MAX_CONNECTIONS = 8;
         public ushort MaxConnections { private set; get; }
@@ -90,31 +90,6 @@ namespace Lithium.Net
             connections.Remove(connectionToRemovoe);
 
             OnDisconnectionEventHandler?.Invoke(connectionToRemovoe);
-        }
-
-        public void OnConnection(int connectionId)
-        {
-            throw new NotImplementedException();
-        }
-
-        public void OnDisconnection(int connectionId)
-        {
-            throw new NotImplementedException();
-        }
-
-        public void OnLostConnection(int connectionId)
-        {
-            throw new NotImplementedException();
-        }
-
-        public void OnData(byte[] data, int channelId, int connectionId)
-        {
-            throw new NotImplementedException();
-        }
-
-        public void SendDatagram(byte[] data, int connectionId)
-        {
-            throw new NotImplementedException();
         }
     }
 }

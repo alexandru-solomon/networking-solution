@@ -7,12 +7,12 @@ namespace Lithium.Protocol
         public UnreliableSequencedChannelConfig() : base(ChannelType.UnreliableSequenced) { }
     }
 
-    internal sealed class UnreliableSequencedEmitter : Emitter
+    internal sealed class UnreliableSequencedEmitter : EntryPoint
     {
         int lastSequence = 0;
         const int SEQUENCE_SIZE = sizeof(int);
 
-        public UnreliableSequencedEmitter(UnreliableSequencedChannelConfig config, ConnectionInfo connectionInfo) : base(config,connectionInfo) { }
+        public UnreliableSequencedEmitter(ISrudpManager manager, UnreliableSequencedChannelConfig config, ConnectionInfo connectionInfo) : base(connectionInfo) { }
 
         internal override void SendDatagram(byte[] data, int offset, int length)
         {
@@ -20,7 +20,7 @@ namespace Lithium.Protocol
             //Pass the data to the Transport layer
         }
     }
-    internal sealed class UnreliableSequencedReceiver : Receiver
+    internal sealed class UnreliableSequencedReceiver : ExitPoint
     {
         int lastSequence = 0;
         const int HALF_SEQ_SIZE = int.MaxValue / 2;
@@ -36,14 +36,14 @@ namespace Lithium.Protocol
             {
                 //Sequence ID is not residue after wrap
                 if (receivedSequence - lastSequence < HALF_SEQ_SIZE)
-                    DataReceivedEventHandlers?.Invoke(data, offset + SEQUENCE_SIZE, size);
+                    OnDataEventHandler?.Invoke(data, offset + SEQUENCE_SIZE, size);
                     return;
             }
             if (receivedSequence < lastSequence)
             {
                 //Sequence ID Wrapped but valid
                 if (lastSequence - receivedSequence > HALF_SEQ_SIZE)
-                    DataReceivedEventHandlers?.Invoke(data, offset + SEQUENCE_SIZE, size);
+                    OnDataEventHandler?.Invoke(data, offset + SEQUENCE_SIZE, size);
                 return;
             }
         }
