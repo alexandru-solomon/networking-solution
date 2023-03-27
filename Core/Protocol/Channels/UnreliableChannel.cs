@@ -1,62 +1,67 @@
 ﻿
+using System;
 using System.Collections.Generic;
 
 namespace Lithium.Protocol
 {
-    internal sealed class UnreliableChannelConfig : ChannelConfig 
+    public sealed class UnreliableChannelConfig : ChannelConfig 
     {
         public UnreliableChannelConfig() : base(ChannelType.Unreliable) { }
     }
 
-    internal sealed class UnreliableEmitter : EntryPoint,IEmitter
+    internal sealed class UnreliableSource : ChannelSource , ISender
     {
+        private readonly ActionScheduler scheduler;
         private readonly Queue<byte[]> datagramsBuffer;
+        private readonly object bufferLock;
+        private readonly SendDatagramEvent sendDatagramEventHandler;
+        
+        private bool isSleeping;
 
-        public UnreliableEmitter(SRUDP protocol, UnreliableChannelConfig config, ConnectionInfo conInfo, DatagramSendEvent datagramHandler) : base(config, conInfo, datagramHandler)
+        public UnreliableSource(ChannelSourceSetup channelSourceSetup, SenderSetup senderSetup) : base(channelSourceSetup)
         {
-            ((IEmitter)this).Scheduler = protocol.Scheduler;
+            scheduler = senderSetup.Scheduler;
             datagramsBuffer = new Queue<byte[]>();
+            bufferLock = new object();
+            sendDatagramEventHandler = channelSourceSetup.SendDatagramEventHandler;
         }
 
-        object IEmitter.BufferLock => throw new System.NotImplementedException();
-
-        bool IEmitter.IsSleeping { get => throw new System.NotImplementedException(); set => throw new System.NotImplementedException(); }
-
-        ActionScheduler IEmitter.Scheduler => throw new System.NotImplementedException();
-
-        void IEmitter.SendData(byte[] data)
+        public void SendData(byte[] data)
         {
-            lock (BufferLock)
+            lock (bufferLock)
             {
                 datagramsBuffer.Enqueue(data);
-                if (IsSleeping)
+                if (isSleeping)
                 {
-                    scheduler.RequestActions(SendBufferedDatagram);
-                    IsSleeping = false;
+                    scheduler.RequestActions(SendDatagram);
+                    isSleeping = false;
                 }
             }
         }
 
-        bool IEmitter.SendDatagram()
+        public bool SendDatagram()
         {
-            lock (BufferLock)
+            lock (bufferLock)
             {
-                datagramSender.Invoke(datagramsBuffer.Dequeue(), 0, 0);//NEEDS MODIFICATION
+                sendDatagramEventHandler.Invoke(datagramsBuffer.Dequeue(), 0, 0);//NEEDS MODIFICATION
 
-                IsSleeping = datagramsBuffer.Count == 0;
-                return IsSleeping;
+                isSleeping = datagramsBuffer.Count == 0;
+                return isSleeping;
             }
         }
     }
     
     
-    internal sealed class UnreliableReceiver : ExitPoint,IReceiver
+    internal sealed class UnreliableSink : ChannelSink,IReceiver
     {
-        public UnreliableReceiver(UnreliableSequencedChannelConfig config, ConnectionInfo connectionInfo) : base(config, connectionInfo) { }
-
-        void IReceiver.RecieveDatagram(byte[] data, int offset, int size)
+        public UnreliableSink(ChannelSinkSetup channelSinkSetup) : base(channelSinkSetup) 
         {
-            throw new System.NotImplementedException();
+            DataEventHandler = channelSinkSetup.DataEventHandler;
+        }
+
+        public void RecieveDatagram(byte[] data, int offset, int size)
+        {
+            DataEventHandler.Invoke(data, offset, size);
         }
     }
-}}
+}

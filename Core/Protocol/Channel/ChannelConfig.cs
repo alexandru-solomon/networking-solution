@@ -1,6 +1,6 @@
 ﻿namespace Lithium.Protocol
 {
-    internal enum ChannelType
+    public enum ChannelType
     {
         Reliable,
         ReliableSequenced,
@@ -13,7 +13,7 @@
         UnreliableFragmentedSequenced,
     }
 
-    internal abstract class ChannelConfig
+    public abstract class ChannelConfig
     {
         public ChannelConfig(ChannelType quality) 
         {

@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿
 using System.Security.Cryptography;
 using System.IO;
 
@@ -10,29 +8,28 @@ namespace Lithium.Encryption
     {
         public AesEncryptor()
         {
-            aes = new AesCryptoServiceProvider();
-            aes.GenerateKey();
-            aes.GenerateIV();
-            encryptedData = new MemoryStream();
-            ICryptoTransform cryptoTransform = aes.CreateDecryptor();
-            encryptStream = new CryptoStream(encryptedData, cryptoTransform, CryptoStreamMode.Write);
-            binaryWriter = new BinaryWriter(encryptedData);
+            AesService = new AesCryptoServiceProvider();
+            AesService.GenerateKey();
+
+            memoryStream = new MemoryStream();
+            cryptoStream = new CryptoStream(memoryStream, AesService.CreateDecryptor(), CryptoStreamMode.Write);
         }
 
-        readonly AesCryptoServiceProvider aes;
-        readonly MemoryStream encryptedData;
-        readonly CryptoStream encryptStream;
-        readonly BinaryWriter binaryWriter;
+        readonly AesCryptoServiceProvider AesService;
+        readonly MemoryStream memoryStream;
+        readonly CryptoStream cryptoStream;
 
-        public void Encrypt(byte[] buffer, int offset, int count)
+        public void Encrypt(byte[] buffer, int offset, int size, out byte[] cypherBuffer, int cypherOffset, out int cypherSize)
         {
-            aes.GenerateIV();
-            binaryWriter.Write(aes.IV);
-            encryptStream.Write(datagram, offset, count);
-        }
-        public void Decrypt(byte[] buffer)
-        {
-            byte[] IV = binaryReader.ReadBytes(16)
+            memoryStream.Position = cypherOffset;
+            memoryStream.SetLength(cypherOffset);
+
+            AesService.GenerateIV();
+            memoryStream.Write(AesService.IV);
+            cryptoStream.Write(buffer, offset, size);
+
+            cypherSize = (int)memoryStream.Length-cypherOffset;
+            cypherBuffer = memoryStream.GetBuffer();
         }
     }
 }

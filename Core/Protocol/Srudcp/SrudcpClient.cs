@@ -1,5 +1,5 @@
 ﻿
-namespace Lithium.Protocol.Srudcp
+namespace Lithium.Protocol
 {
     interface ISrudcpClientManager
     {
